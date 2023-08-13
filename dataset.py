@@ -11,7 +11,7 @@ IGNORE_TOKEN = -1
 
 
 class CustomLibriSpeechDataset(torch.utils.data.Dataset):
-    def __init__(self, split: str = "test-clean", device: str = "cpu", ignore_token: int = IGNORE_TOKEN):
+    def __init__(self, split: str = "dev-clean", device: str = "cpu", ignore_token: int = IGNORE_TOKEN):
         self._dataset = torchaudio.datasets.LIBRISPEECH(
             root="./data/", url=split, download=True,
         )
