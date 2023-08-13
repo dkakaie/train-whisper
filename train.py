@@ -42,8 +42,8 @@ def take_train_step(
     mels: torch.Tensor,
     input_tokens: torch.Tensor,
     target_tokens: torch.Tensor,
-    loss_fn,
-    optimizer,
+    loss_fn: nn.modules.loss.CrossEntropyLoss,
+    optimizer: torch.optim.Optimizer,
 ) -> float:
     model.train()
     output = model(mels, input_tokens)
