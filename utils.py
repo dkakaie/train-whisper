@@ -1,8 +1,8 @@
+from whisper.normalizers import EnglishTextNormalizer
+from tqdm import tqdm
 import jiwer
 import torch
 import whisper
-from whisper.normalizers import EnglishTextNormalizer
-from tqdm import tqdm
 
 
 def calculate_wer(
