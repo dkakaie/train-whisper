@@ -60,6 +60,3 @@ for i, batch in enumerate(train_data_loader):
     mels, input_tokens, target_tokens, _ = batch
     train_step_loss_val = take_train_step(model, mels, input_tokens, target_tokens, loss_fn, optimizer)
     print(f"Batch no: {i}, train step loss: {train_step_loss_val}")
-
-
-
