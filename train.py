@@ -13,8 +13,8 @@ LR = 1e-5
 BATCH_SIZE = 16
 EPOCHS = 5
 
-train_dataset = CustomLibriSpeechDataset(split="dev-clean", device=DEVICE)
-val_dataset = CustomLibriSpeechDataset(split="dev-clean", device=DEVICE)
+train_dataset = CustomLibriSpeechDataset(split="train-other-500", device=DEVICE)
+val_dataset = CustomLibriSpeechDataset(split="test-clean", device=DEVICE)
 
 collator = Collator()
 train_data_loader = torch.utils.data.DataLoader(
@@ -37,26 +37,48 @@ loss_fn = nn.CrossEntropyLoss(ignore_index=IGNORE_TOKEN)
 optimizer = torch.optim.AdamW(model.parameters(), lr=LR)
 
 
-def take_train_step(
+def train(
     model: whisper.model.Whisper,
-    mels: torch.Tensor,
-    input_tokens: torch.Tensor,
-    target_tokens: torch.Tensor,
+    train_data_loader: torch.utils.data.DataLoader,
     loss_fn: nn.modules.loss.CrossEntropyLoss,
     optimizer: torch.optim.Optimizer,
-) -> float:
+) -> None:
+    n_batches = len(train_data_loader)
     model.train()
-    output = model(mels, input_tokens)
-    b, t, c = output.shape
+    for i, (mels, input_tokens, target_tokens, _) in enumerate(train_data_loader):
+        output = model(mels, input_tokens)
+        b, t, c = output.shape
+        loss = loss_fn(output.view(b * t, c), target_tokens.view(b * t))
+        loss.backward()
+        optimizer.step()
+        optimizer.zero_grad()
 
-    loss = loss_fn(output.view(b * t, c), target_tokens.view(b * t))
-    optimizer.zero_grad()
-    loss.backward()
-    optimizer.step()
-    return loss.item()
+        if i % 100 == 0:
+            print(f"loss: {loss.item():>7f}  [{i}/ {n_batches}]")
 
 
-for i, batch in enumerate(train_data_loader):
-    mels, input_tokens, target_tokens, _ = batch
-    train_step_loss_val = take_train_step(model, mels, input_tokens, target_tokens, loss_fn, optimizer)
-    print(f"Batch no: {i}, train step loss: {train_step_loss_val}")
+def validation(
+    model: whisper.model.Whisper,
+    val_data_loader: torch.utils.data.DataLoader,
+    loss_fn: nn.modules.loss.CrossEntropyLoss,
+) -> None:
+    n_batches = len(val_data_loader)
+    total_val_loss = 0.0
+    model.eval()
+    with torch.no_grad():
+        for i, (mels, input_tokens, target_tokens, _) in enumerate(val_data_loader):
+            output = model(mels, input_tokens)
+            b, t, c = output.shape
+            loss = loss_fn(output.view(b * t, c), target_tokens.view(b * t))
+            total_val_loss += loss.item()
+
+    print(f"Validation loss: {total_val_loss / n_batches}")
+
+
+for _ in range(EPOCHS):
+    train(model, train_data_loader, loss_fn, optimizer)
+    validation(model, val_data_loader, loss_fn)
+    val_wer = calculate_wer(model, val_data_loader)
+    print(f"WER: {val_wer}")
+
+
