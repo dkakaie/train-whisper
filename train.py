@@ -30,7 +30,7 @@ val_data_loader = torch.utils.data.DataLoader(
     collate_fn=collator,
 )
 
-model = whisper.model.Whisper(dims)
+model = whisper.model.Whisper(dims).to(DEVICE)
 
 # todo: add warming up phase
 loss_fn = nn.CrossEntropyLoss(ignore_index=IGNORE_TOKEN)
