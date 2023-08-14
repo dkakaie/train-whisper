@@ -10,7 +10,7 @@ from utils import calculate_wer
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 EVAL_INTERVAL = 500
 LR = 1e-5
-BATCH_SIZE = 16
+BATCH_SIZE = 32
 EPOCHS = 5
 
 train_dataset = CustomLibriSpeechDataset(split="train-other-500", device=DEVICE)
