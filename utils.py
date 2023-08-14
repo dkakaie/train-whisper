@@ -24,5 +24,5 @@ def calculate_wer(
         hypotheses = [normalizer(s) for s in hypotheses]
         references = [normalizer(s) for s in references]
 
-    wer = jiwer.wer(hypothesis=hypotheses, reference=references)
+    wer = jiwer.wer(hypothesis=hypotheses, reference=references) * 100
     return wer
