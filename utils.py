@@ -1,28 +1,14 @@
-from whisper.normalizers import EnglishTextNormalizer
-from tqdm import tqdm
-import jiwer
-import torch
-import whisper
+class LinearLearningRateDecayWithWarmup:
+    def __init__(self, warmup_steps: int, total_steps: int):
+        self._warmup_steps = warmup_steps
+        self._total_steps = total_steps
 
-
-def calculate_wer(
-    model: whisper.model.Whisper,
-    data_loader: torch.utils.data.DataLoader,
-    normalize: bool = True,
-) -> float:
-    hypotheses, references = [], []
-    for mels, _, _, texts in tqdm(data_loader):
-        results = model.decode(
-            mels,
-            whisper.DecodingOptions(language="en", without_timestamps=True, fp16=False)
+    def __call__(self, current_step: int) -> float:
+        # linear increase to 1.0
+        if current_step < self._warmup_steps:
+            return current_step / self._warmup_steps
+        # linear decrease to 0.0
+        return max(
+            (self._total_steps - current_step) / (self._total_steps - self._warmup_steps),
+            0.0
         )
-        hypotheses.extend([result.text for result in results])
-        references.extend(texts)
-
-    if normalize:
-        normalizer = EnglishTextNormalizer()
-        hypotheses = [normalizer(s) for s in hypotheses]
-        references = [normalizer(s) for s in references]
-
-    wer = jiwer.wer(hypothesis=hypotheses, reference=references) * 100
-    return wer
