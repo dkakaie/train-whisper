@@ -1,2 +1,2 @@
 # train-whisper
-Training script for Whisper ASR model. To run, execute `python train.py`. See `dims.py` for model size specification. Note: currently supports English transcription without time-stamps. See https://cdn.openai.com/papers/whisper.pdf and https://github.com/openai/whisper.  
+Training script for Whisper ASR model. To run, execute `python train.py`. See `dims.py` for model size specification. Note: currently only supports English transcription without time-stamps. See https://cdn.openai.com/papers/whisper.pdf and https://github.com/openai/whisper.  
