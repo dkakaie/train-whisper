@@ -45,7 +45,8 @@ def train(
         nn.utils.clip_grad_norm_(model.parameters(), 1.0)
         optimizer.step()
         # step learning rate scheduler
-        scheduler.step()
+        if scheduler:
+            scheduler.step()
 
         if i % print_interval == 0:
             print(f"loss: {loss.item():>7f}  [{i}/ {n_batches}]")
