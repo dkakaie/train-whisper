@@ -52,6 +52,7 @@ def train(
     train_data_loader: torch.utils.data.DataLoader,
     loss_fn: nn.modules.loss.CrossEntropyLoss,
     optimizer: torch.optim.Optimizer,
+    print_interval: int = 100
 ) -> None:
     n_batches = len(train_data_loader)
     model.train()
@@ -68,11 +69,11 @@ def train(
         # step learning rate scheduler
         scheduler.step()
 
-        if i % 100 == 0:
+        if i % print_interval == 0:
             print(f"loss: {loss.item():>7f}  [{i}/ {n_batches}]")
 
 
-def validation(
+def validate(
     model: whisper.model.Whisper,
     val_data_loader: torch.utils.data.DataLoader,
     loss_fn: nn.modules.loss.CrossEntropyLoss,
@@ -99,7 +100,7 @@ def calculate_wer(
     for mels, _, _, texts in tqdm(data_loader):
         results = model.decode(
             mels,
-            whisper.DecodingOptions(language="en", without_timestamps=True, fp16=False)
+            whisper.DecodingOptions(language="en", without_timestamps=True)
         )
         hypotheses.extend([result.text for result in results])
         references.extend(texts)
@@ -109,13 +110,12 @@ def calculate_wer(
         hypotheses = [normalizer(s) for s in hypotheses]
         references = [normalizer(s) for s in references]
 
-    wer = jiwer.wer(hypothesis=hypotheses, reference=references) * 100
-    return wer
+    return jiwer.wer(hypothesis=hypotheses, reference=references) * 100
 
 
 for i in range(EPOCHS):
     train(model, train_data_loader, loss_fn, optimizer)
-    validation(model, val_data_loader, loss_fn)
+    validate(model, val_data_loader, loss_fn)
     val_wer = calculate_wer(model, val_data_loader)
     print(f"Epoch {i + 1} WER: {val_wer}")
 

@@ -1,6 +1,7 @@
 from typing import List, Tuple
 
 from whisper.tokenizer import get_tokenizer
+import pandas as pd
 import torch
 import torch.nn.functional as F
 import torchaudio
@@ -24,13 +25,55 @@ class CustomLibriSpeechDataset(torch.utils.data.Dataset):
         self._sot_sequence = self._tokenizer.sot_sequence_including_notimestamps
         self._eot = self._tokenizer.eot
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self._dataset)
 
-    def __getitem__(self, idx) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, str]:
+    def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, str]:
         audio, _, text, _, _, _ = self._dataset[idx]
 
         audio = whisper.pad_or_trim(audio.flatten()).to(self._device)
+        mel = whisper.log_mel_spectrogram(audio)
+
+        tokens = torch.tensor(self._tokenizer.encode(text))
+        input_tokens = torch.concatenate([
+            torch.tensor(self._sot_sequence), tokens
+        ]).to(self._device)
+        target_tokens = torch.concatenate([
+            torch.tensor([self._ignore_token]), tokens, torch.tensor([self._eot])
+        ]).to(self._device)
+
+        return mel, input_tokens, target_tokens, text
+
+
+class PizzaSpeechDataset(torch.utils.data.Dataset):
+    def __init__(
+        self,
+        train: bool = True,
+        device: str = "cpu",
+        ignore_token: int = IGNORE_TOKEN
+    ):
+        self._annotations_df = pd.read_csv(
+            f"./custom_data/train_audio_text_pairs.csv" if train
+            else f"./custom_data/test_audio_text_pairs.csv"
+        )
+
+        self._device = device
+        self._ignore_token = ignore_token
+
+        self._tokenizer = get_tokenizer(
+            multilingual=False, language="en", task="transcribe"
+        )
+        self._sot_sequence = self._tokenizer.sot_sequence_including_notimestamps
+        self._eot = self._tokenizer.eot
+
+    def __len__(self) -> int:
+        return len(self._annotations_df)
+
+    def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, str]:
+        text = self._annotations_df.iloc[idx]["text"]
+        audio = whisper.pad_or_trim(
+            torch.from_numpy(whisper.load_audio(self._annotations_df.iloc[idx]["audio"]))
+        ).to(self._device)
         mel = whisper.log_mel_spectrogram(audio)
 
         tokens = torch.tensor(self._tokenizer.encode(text))
