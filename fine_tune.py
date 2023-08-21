@@ -3,7 +3,7 @@ import torch.nn as nn
 import whisper
 
 from dataset import Collator, PizzaSpeechDataset, IGNORE_TOKEN
-from train import train, validate, calculate_wer
+from utils import train, validate, calculate_wer
 
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
@@ -36,7 +36,7 @@ optimizer = torch.optim.AdamW(
 )
 
 for i in range(EPOCHS):
-    train(model, train_data_loader, loss_fn, optimizer, print_interval=10)
+    train(model, train_data_loader, loss_fn, optimizer, None, 10)
     validate(model, val_data_loader, loss_fn)
     val_wer = calculate_wer(model, val_data_loader)
     print(f"Epoch {i + 1} WER: {val_wer}")

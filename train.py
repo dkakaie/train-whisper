@@ -1,13 +1,10 @@
-from tqdm import tqdm
-import jiwer
 import torch
 import torch.nn as nn
 import whisper
 
 from dataset import Collator, CustomLibriSpeechDataset, IGNORE_TOKEN
 from dims import dims
-from utils import LinearLearningRateDecayWithWarmup
-from whisper.normalizers import EnglishTextNormalizer
+from utils import calculate_wer, LinearLearningRateDecayWithWarmup, train, validate
 
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
@@ -47,74 +44,8 @@ lr_lambda = LinearLearningRateDecayWithWarmup(warmup_steps=WARMUP_STEPS, total_s
 scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lr_lambda)
 
 
-def train(
-    model: whisper.model.Whisper,
-    train_data_loader: torch.utils.data.DataLoader,
-    loss_fn: nn.modules.loss.CrossEntropyLoss,
-    optimizer: torch.optim.Optimizer,
-    print_interval: int = 100
-) -> None:
-    n_batches = len(train_data_loader)
-    model.train()
-    for i, (mels, input_tokens, target_tokens, _) in enumerate(train_data_loader):
-        optimizer.zero_grad()
-        output = model(mels, input_tokens)
-        b, t, c = output.shape
-        loss = loss_fn(output.view(b * t, c), target_tokens.view(b * t))
-
-        # back propagation
-        loss.backward()
-        nn.utils.clip_grad_norm_(model.parameters(), 1.0)
-        optimizer.step()
-        # step learning rate scheduler
-        scheduler.step()
-
-        if i % print_interval == 0:
-            print(f"loss: {loss.item():>7f}  [{i}/ {n_batches}]")
-
-
-def validate(
-    model: whisper.model.Whisper,
-    val_data_loader: torch.utils.data.DataLoader,
-    loss_fn: nn.modules.loss.CrossEntropyLoss,
-) -> None:
-    n_batches = len(val_data_loader)
-    total_val_loss = 0.0
-    model.eval()
-    with torch.no_grad():
-        for i, (mels, input_tokens, target_tokens, _) in enumerate(val_data_loader):
-            output = model(mels, input_tokens)
-            b, t, c = output.shape
-            loss = loss_fn(output.view(b * t, c), target_tokens.view(b * t))
-            total_val_loss += loss.item()
-
-    print(f"Validation loss: {total_val_loss / n_batches}")
-
-
-def calculate_wer(
-    model: whisper.model.Whisper,
-    data_loader: torch.utils.data.DataLoader,
-    normalize: bool = True,
-) -> float:
-    hypotheses, references = [], []
-    for mels, _, _, texts in tqdm(data_loader):
-        results = model.decode(
-            mels,
-            whisper.DecodingOptions(language="en", without_timestamps=True)
-        )
-        hypotheses.extend([result.text for result in results])
-        references.extend(texts)
-
-    if normalize:
-        normalizer = EnglishTextNormalizer()
-        hypotheses = [normalizer(s) for s in hypotheses]
-        references = [normalizer(s) for s in references]
-
-    return jiwer.wer(hypothesis=hypotheses, reference=references) * 100
-
-
 for i in range(EPOCHS):
-    train(model, train_data_loader, loss_fn, optimizer)
+    train(model, train_data_loader, loss_fn, optimizer, scheduler)
     validate(model, val_data_loader, loss_fn)
     val_wer = calculate_wer(model, val_data_loader)
     print(f"Epoch {i + 1} WER: {val_wer}")
