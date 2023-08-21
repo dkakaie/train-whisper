@@ -13,7 +13,7 @@ EPOCHS = 5
 
 train_dataset = PizzaSpeechDataset(train=True, device=DEVICE)
 val_dataset = PizzaSpeechDataset(train=False, device=DEVICE)
-libri_speech_val_dataset = CustomLibriSpeechDataset(split="tests-clean", device=DEVICE)
+libri_speech_val_dataset = CustomLibriSpeechDataset(split="test-clean", device=DEVICE)
 
 collator = Collator()
 train_data_loader = torch.utils.data.DataLoader(
