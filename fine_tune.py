@@ -11,7 +11,7 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 LR = 0.0000001
 BATCH_SIZE = 16
 EPOCHS = 3
-BASE_MODEL = "tiny.en"
+BASE_MODEL_NAME = "tiny.en"
 
 
 # Initialise wandb run
@@ -22,7 +22,7 @@ wandb_run = wandb.init(
         "Learning rate": LR,
         "Batch size": BATCH_SIZE,
         "Epochs": EPOCHS,
-        "Base model": BASE_MODEL,
+        "Base model": BASE_MODEL_NAME,
     }
 )
 
@@ -51,7 +51,7 @@ libri_speech_val_data_loader = torch.utils.data.DataLoader(
     collate_fn=collator,
 )
 
-model = whisper.load_model("medium.en")
+model = whisper.load_model(BASE_MODEL_NAME)
 
 loss_fn = nn.CrossEntropyLoss(ignore_index=IGNORE_TOKEN)
 optimizer = torch.optim.AdamW(
