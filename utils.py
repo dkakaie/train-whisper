@@ -1,6 +1,7 @@
 from typing import Optional
 
 from tqdm import tqdm
+import wandb
 from whisper.normalizers import EnglishTextNormalizer
 import jiwer
 import torch
@@ -30,7 +31,8 @@ def train(
     loss_fn: nn.modules.loss.CrossEntropyLoss,
     optimizer: torch.optim.Optimizer,
     scheduler: Optional[torch.optim.lr_scheduler.LambdaLR],
-    print_interval: int = 100
+    log_interval: int = 100,
+    wandb_run: wandb.sdk.wandb_run.Run = None,
 ) -> None:
     n_batches = len(train_data_loader)
     model.train()
@@ -48,26 +50,32 @@ def train(
         if scheduler:
             scheduler.step()
 
-        if i % print_interval == 0:
-            print(f"loss: {loss.item():>7f}  [{i}/ {n_batches}]")
+        if i % log_interval == 0:
+            print(f"loss: {loss.item():>7f}  [{i} / {n_batches}]")
+
+        if wandb_run:
+            wandb_run.log({"train/train_loss": loss})
 
 
 def validate(
     model: whisper.model.Whisper,
     val_data_loader: torch.utils.data.DataLoader,
     loss_fn: nn.modules.loss.CrossEntropyLoss,
+    wandb_run: wandb.sdk.wandb_run.Run = None,
 ) -> None:
     n_batches = len(val_data_loader)
     total_val_loss = 0.0
     model.eval()
     with torch.no_grad():
-        for i, (mels, input_tokens, target_tokens, _) in enumerate(val_data_loader):
+        for mels, input_tokens, target_tokens, _ in val_data_loader:
             output = model(mels, input_tokens)
             b, t, c = output.shape
             loss = loss_fn(output.view(b * t, c), target_tokens.view(b * t))
             total_val_loss += loss.item()
 
     print(f"Validation loss: {total_val_loss / n_batches}")
+    if wandb_run:
+        wandb_run.log({"val/val_loss": total_val_loss / n_batches})
 
 
 def calculate_wer(

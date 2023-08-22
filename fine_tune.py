@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import wandb
 import whisper
 
 from dataset import Collator, CustomLibriSpeechDataset, PizzaSpeechDataset, IGNORE_TOKEN
@@ -10,6 +11,21 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 LR = 0.0000001
 BATCH_SIZE = 16
 EPOCHS = 3
+BASE_MODEL = "tiny.en"
+
+
+# Initialise wandb run
+wandb_run = wandb.init(
+    project="fine-tune-whisper",
+    config={
+        "Device": DEVICE,
+        "Learning rate": LR,
+        "Batch size": BATCH_SIZE,
+        "Epochs": EPOCHS,
+        "Base model": BASE_MODEL,
+    }
+)
+
 
 train_dataset = PizzaSpeechDataset(train=True, device=DEVICE)
 val_dataset = PizzaSpeechDataset(train=False, device=DEVICE)
@@ -45,6 +61,8 @@ optimizer = torch.optim.AdamW(
 val_wer = calculate_wer(model, val_data_loader)
 libri_speech_wer = calculate_wer(model, libri_speech_val_data_loader)
 print(f"Epoch 0 WER: {val_wer}; Libri Speech WER: {libri_speech_wer}")
+wandb_run.log({"wer/pizza_speech_wer": val_wer, "wer/libri_speech_wer": libri_speech_wer})
+
 
 for i in range(EPOCHS):
     train(model, train_data_loader, loss_fn, optimizer, None, 10)
