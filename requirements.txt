@@ -4,3 +4,4 @@ torchaudio==2.0.2
 jiwer==3.0.2
 tqdm==4.65.0
 pandas==2.0.3
+wandb==0.15.8
