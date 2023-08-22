@@ -42,6 +42,10 @@ optimizer = torch.optim.AdamW(
     model.parameters(), lr=LR, betas=(0.9, 0.98), eps=1e-6, weight_decay=0.1
 )
 
+val_wer = calculate_wer(model, val_data_loader)
+libri_speech_wer = calculate_wer(model, libri_speech_val_data_loader)
+print(f"Epoch 0 WER: {val_wer}; Libri Speech WER: {libri_speech_wer}")
+
 for i in range(EPOCHS):
     train(model, train_data_loader, loss_fn, optimizer, None, 10)
     validate(model, val_data_loader, loss_fn)
