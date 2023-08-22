@@ -70,4 +70,5 @@ for i in range(EPOCHS):
     val_wer = calculate_wer(model, val_data_loader)
     libri_speech_wer = calculate_wer(model, libri_speech_val_data_loader)
     print(f"Epoch {i + 1} WER: {val_wer}; Libri Speech WER: {libri_speech_wer}")
+    wandb_run.log({"wer/pizza_speech_wer": val_wer, "wer/libri_speech_wer": libri_speech_wer})
     torch.save(model.state_dict(), f"models/fine-tuned-base-en-epoch-{i+1}.pth")
