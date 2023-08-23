@@ -9,9 +9,9 @@ from utils import train, validate, calculate_wer
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 LR = 0.0000001
-BATCH_SIZE = 16
+BATCH_SIZE = 4
 EPOCHS = 3
-BASE_MODEL_NAME = "tiny.en"
+BASE_MODEL_NAME = "small.en"
 
 
 # Initialise wandb run
@@ -40,13 +40,13 @@ train_data_loader = torch.utils.data.DataLoader(
 )
 val_data_loader = torch.utils.data.DataLoader(
     val_dataset,
-    batch_size=BATCH_SIZE,
+    batch_size=BATCH_SIZE*4,
     shuffle=True,
     collate_fn=collator,
 )
 libri_speech_val_data_loader = torch.utils.data.DataLoader(
     libri_speech_val_dataset,
-    batch_size=BATCH_SIZE,
+    batch_size=BATCH_SIZE*4,
     shuffle=True,
     collate_fn=collator,
 )
@@ -62,7 +62,6 @@ val_wer = calculate_wer(model, val_data_loader)
 libri_speech_wer = calculate_wer(model, libri_speech_val_data_loader)
 print(f"Epoch 0 WER: {val_wer}; Libri Speech WER: {libri_speech_wer}")
 wandb_run.log({"wer/pizza_speech_wer": val_wer, "wer/libri_speech_wer": libri_speech_wer})
-
 
 for i in range(EPOCHS):
     train(model, train_data_loader, loss_fn, optimizer, None, 10)
